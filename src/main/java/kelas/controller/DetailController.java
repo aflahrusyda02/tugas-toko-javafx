@@ -5,35 +5,38 @@ import java.text.NumberFormat;
 import java.util.Locale;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import kelas.Navigator;
-import kelas.model.Pembelian;
+import kelas.model.Produk;
 
 public class DetailController {
+    @FXML private Label kodeLabel;
+    @FXML private Label namaLabel;
+    @FXML private Label kategoriLabel;
+    @FXML private Label hargaLabel;
+    @FXML private Label pesanLabel;
 
-    @FXML
-    private Label kodeLabel, namaLabel, jenisLabel, jumlahLabel, totalLabel, pesanLabel;
-    @FXML
-    private ImageView gambarView;
     private Navigator navigator;
 
-    public void setData(Navigator navigator, Pembelian p) {
+    // Dipanggil Navigator setelah FXML dimuat; menerima objek Produk terpilih.
+    public void setData(Navigator navigator, Produk produk) {
         this.navigator = navigator;
-        kodeLabel.setText(p.getKode());
-        namaLabel.setText(p.getTiket().getNamaPembeli());
-        jenisLabel.setText(p.getJenis());
-        jumlahLabel.setText(String.valueOf(p.getTiket().getJumlah()));
-        totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")).format(p.getTiket().hitungTotal()));
-        if (p.getGambarUri() != null) {
-            Image image = new Image(p.getGambarUri(), 640, 480, true, true);
-            if (image.isError()) {
-                pesanLabel.setText("Lampiran tidak ditemukan atau tidak dapat dibaca.");
-            } else {
-                gambarView.setImage(image);
-            }
-        } else {
-            pesanLabel.setText("Tanpa lampiran gambar.");
+        kodeLabel.setText(produk.getKode());
+        namaLabel.setText(produk.getNama());
+        kategoriLabel.setText(produk.getKategori());
+
+        NumberFormat rupiah = NumberFormat.getCurrencyInstance(
+                Locale.forLanguageTag("id-ID"));
+        rupiah.setMaximumFractionDigits(0);
+        hargaLabel.setText(rupiah.format(produk.getHarga()));
+    }
+
+    @FXML
+    private void bukaDaftar() {
+        try {
+            navigator.bukaDaftar();
+        } catch (IOException e) {
+            pesanLabel.setText("Halaman daftar gagal dibuka.");
+            e.printStackTrace();
         }
     }
 
@@ -42,17 +45,7 @@ public class DetailController {
         try {
             navigator.bukaForm();
         } catch (IOException e) {
-            pesanLabel.setText("Gagal membuka form.");
-            e.printStackTrace();
-        }
-    }
-
-    @FXML
-    private void bukaDaftar() {
-        try {
-            navigator.bukaDaftar();
-        } catch (IOException e) {
-            pesanLabel.setText("Gagal membuka daftar.");
+            pesanLabel.setText("Form gagal dibuka.");
             e.printStackTrace();
         }
     }
