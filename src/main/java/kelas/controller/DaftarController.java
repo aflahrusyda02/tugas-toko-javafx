@@ -1,97 +1,65 @@
 package kelas.controller;
 
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.Locale;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import kelas.Navigator;
-import kelas.data.DataPembelian;
-import kelas.model.Pembelian;
+import kelas.data.DataProduk;
+import kelas.model.Produk;
 
 public class DaftarController {
-
-    @FXML
-    private TableView<Pembelian> tabel;
-    @FXML
-    private TableColumn<Pembelian, String> kodeCol;
-    @FXML
-    private TableColumn<Pembelian, String> namaCol;
-    @FXML
-    private TableColumn<Pembelian, String> jenisCol;
-    @FXML
-    private TableColumn<Pembelian, Integer> jumlahCol;
-    @FXML
-    private TableColumn<Pembelian, Long> totalCol;
-    @FXML
-    private TextField cariField;
-    @FXML
-    private ComboBox<String> filterJenisBox;
-    @FXML
-    private CheckBox totalCheck;
-    @FXML
-    private CheckBox jumlahCheck;
-    @FXML
-    private Label pesanLabel;
+    @FXML private TableView<Produk> tabel;
+    @FXML private TableColumn<Produk, String> kodeCol;
+    @FXML private TableColumn<Produk, String> namaCol;
+    @FXML private TableColumn<Produk, String> kategoriCol;
+    @FXML private TableColumn<Produk, Long> hargaCol;
+    @FXML private TextField cariField;
+    @FXML private Label pesanLabel;
 
     private Navigator navigator;
-    private DataPembelian data;
-    private final ObservableList<Pembelian> dataTampilan
-            = FXCollections.observableArrayList();
+    private DataProduk data;
+
+    // Isi tabel; daftar asli tetap aman di DataProduk.
+    private final ObservableList<Produk> hasilTampil =
+            FXCollections.observableArrayList();
 
     @FXML
     private void initialize() {
-        // KOLOM KODE
-        PropertyValueFactory<Pembelian, String> sumberKode
-                = new PropertyValueFactory<Pembelian, String>("kode");
+        kodeCol.setCellValueFactory(new PropertyValueFactory<>("kode"));
+        namaCol.setCellValueFactory(new PropertyValueFactory<>("nama"));
+        kategoriCol.setCellValueFactory(new PropertyValueFactory<>("kategori"));
+        hargaCol.setCellValueFactory(new PropertyValueFactory<>("harga"));
 
-        kodeCol.setCellValueFactory(sumberKode);
+        // Nilai kolom tetap Long supaya urut numerik; hanya tampilannya diformat.
+        NumberFormat rupiah = NumberFormat.getCurrencyInstance(
+                Locale.forLanguageTag("id-ID"));
+        rupiah.setMaximumFractionDigits(0);
+        hargaCol.setCellFactory(kolom -> new TableCell<Produk, Long>() {
+            @Override
+            protected void updateItem(Long nilai, boolean kosong) {
+                super.updateItem(nilai, kosong);
+                if (kosong || nilai == null) {
+                    setText(null);
+                } else {
+                    setText(rupiah.format(nilai));
+                }
+            }
+        });
 
-        // KOLOM NAMA PEMBELI
-        PropertyValueFactory<Pembelian, String> sumberNama
-                = new PropertyValueFactory<Pembelian, String>("namaPembeli");
-
-        namaCol.setCellValueFactory(sumberNama);
-
-        // KOLOM JENIS TIKET
-        PropertyValueFactory<Pembelian, String> sumberJenis
-                = new PropertyValueFactory<Pembelian, String>("jenis");
-
-        jenisCol.setCellValueFactory(sumberJenis);
-
-        // KOLOM JUMLAH
-        PropertyValueFactory<Pembelian, Integer> sumberJumlah
-                = new PropertyValueFactory<Pembelian, Integer>("jumlah");
-
-        jumlahCol.setCellValueFactory(sumberJumlah);
-
-        // KOLOM TOTAL
-        PropertyValueFactory<Pembelian, Long> sumberTotal
-                = new PropertyValueFactory<Pembelian, Long>("total");
-
-        totalCol.setCellValueFactory(sumberTotal);
-
-        filterJenisBox.getItems().add("Semua");
-        filterJenisBox.getItems().add("Reguler");
-        filterJenisBox.getItems().add("Mahasiswa");
-        filterJenisBox.setValue("Semua");
-
-        tabel.setItems(dataTampilan);
-        tabel.setPlaceholder(new Label("Belum ada data yang sesuai."));
-        ubahTampilanTotal();
-        ubahTampilanJumlah();
+        tabel.setItems(hasilTampil);
+        tabel.setPlaceholder(new Label("Belum ada produk yang cocok."));
     }
 
-    public void setKonteks(Navigator navigator, DataPembelian data) {
+    public void setKonteks(Navigator navigator, DataProduk data) {
         this.navigator = navigator;
         this.data = data;
         cari();
@@ -102,55 +70,22 @@ public class DaftarController {
         if (data == null) {
             return;
         }
-        dataTampilan.clear();
+        hasilTampil.clear();
         String kata = cariField.getText().trim().toLowerCase(Locale.ROOT);
-        String jenisDipilih = filterJenisBox.getValue();
-
-        for (Pembelian pembelian : data.getDaftar()) {
-            String kode = pembelian.getKode().toLowerCase(Locale.ROOT);
-            String nama = pembelian.getNamaPembeli().toLowerCase(Locale.ROOT);
-            boolean cocokKata = false;
-            boolean cocokJenis = false;
-
-            if (kode.contains(kata) || nama.contains(kata)) {
-                cocokKata = true;
-            }
-            if ("Semua".equals(jenisDipilih)) {
-                cocokJenis = true;
-            } else if (pembelian.getJenis().equals(jenisDipilih)) {
-                cocokJenis = true;
-            }
-            if (cocokKata && cocokJenis) {
-                dataTampilan.add(pembelian);
+        for (Produk p : data.getDaftar()) {
+            if (p.getNama().toLowerCase(Locale.ROOT).contains(kata)) {
+                hasilTampil.add(p);
             }
         }
         tabel.sort();
-        pesanLabel.setText("Jumlah data yang tampil: " + dataTampilan.size());
+        pesanLabel.setText("Menampilkan " + hasilTampil.size()
+                + " dari " + data.getDaftar().size() + " produk.");
     }
 
     @FXML
     private void resetPencarian() {
         cariField.clear();
-        filterJenisBox.setValue("Semua");
         cari();
-    }
-
-    @FXML
-    private void ubahTampilanTotal() {
-        if (totalCheck.isSelected()) {
-            totalCol.setVisible(true);
-        } else {
-            totalCol.setVisible(false);
-        }
-    }
-
-    @FXML
-    private void ubahTampilanJumlah() {
-        if (jumlahCheck.isSelected()) {
-            jumlahCol.setVisible(true);
-        } else {
-            jumlahCol.setVisible(false);
-        }
     }
 
     @FXML
@@ -165,34 +100,16 @@ public class DaftarController {
 
     @FXML
     private void detail() {
-        Pembelian pembelian = tabel.getSelectionModel().getSelectedItem();
-        if (pembelian == null) {
-            pesanLabel.setText("Pilih satu baris dahulu.");
+        Produk dipilih = tabel.getSelectionModel().getSelectedItem();
+        if (dipilih == null) {
+            pesanLabel.setText("Klik satu baris produk dulu.");
             return;
         }
         try {
-            navigator.bukaDetail(pembelian);
+            navigator.bukaDetail(dipilih);
         } catch (IOException e) {
-            pesanLabel.setText("Detail gagal dibuka.");
+            pesanLabel.setText("Halaman detail gagal dibuka.");
             e.printStackTrace();
-        }
-    }
-
-    @FXML
-    private void hapus() {
-        Pembelian pembelian = tabel.getSelectionModel().getSelectedItem();
-        if (pembelian == null) {
-            pesanLabel.setText("Pilih satu baris dahulu.");
-            return;
-        }
-        Alert dialog = new Alert(Alert.AlertType.CONFIRMATION,
-                "Hapus " + pembelian.getKode() + "?",
-                ButtonType.YES, ButtonType.NO);
-        dialog.initOwner(tabel.getScene().getWindow());
-        ButtonType jawaban = dialog.showAndWait().orElse(ButtonType.NO);
-        if (jawaban == ButtonType.YES) {
-            data.hapus(pembelian);
-            cari();
         }
     }
 }
